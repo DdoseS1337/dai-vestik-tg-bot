@@ -5,7 +5,7 @@ export class StartCommand extends Command {
 	async handle(chatid: number): Promise<void> {
 		const existingProfile = await UserProfile.findByChatId(chatid);
 
-		if(existingProfile) {
+			console.log(existingProfile)
 			const options = {
 				reply_markup: {
 					keyboard: [[{ text: '1' }, { text: '2' }, { text: '3' }, { text: '4' }]],
@@ -17,10 +17,7 @@ export class StartCommand extends Command {
 			`4. Дивитися анкети.`;
 	
 			this.bot.sendMessage(chatid, response, options);
-		} else {
-			this.bot.sendMessage(chatid, 'no sex');
-		}
-
+		
 	}
 
 }

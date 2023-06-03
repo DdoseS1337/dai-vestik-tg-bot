@@ -83,7 +83,9 @@ export class FillProfile extends Command {
             this.userProfileData.about as string,
             this.userProfileData.age as number,
             this.userProfileData.gender as string,
-            this.userProfileData.interest as string
+            this.userProfileData.interest as string,
+            [],
+            []
           );
 
           userProfile.saveProfile();

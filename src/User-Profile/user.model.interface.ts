@@ -9,6 +9,8 @@ export interface UserProfileDocument  {
   age: number;
   gender: string;
   interest: string;
+  likes: number[]; 
+  matches: number[];
 }
 
 const userProfileSchema = new Schema<UserProfileDocument>({
@@ -20,6 +22,8 @@ const userProfileSchema = new Schema<UserProfileDocument>({
   age: { type: Number, required: true },
   gender: { type: String, required: true },
   interest: { type: String, required: true },
+  likes: { type: [Number], default: [] },
+  matches: { type: [Number], default: [] },
 });
 
 export default model<UserProfileDocument>('UserProfile', userProfileSchema);

@@ -1,6 +1,7 @@
-import {UserProfileModel} from "./user.model";
+import IUserProfile from "./user-profile.interface";
+import { UserProfileModel } from "./user.model";
 
-export class UserProfile {
+export class UserProfile implements IUserProfile {
   photoURL: string;
   username: string;
   chatid: number;
@@ -9,6 +10,8 @@ export class UserProfile {
   age: number;
   gender: string;
   interest: string;
+  likes: number[];
+  matches: number[];
 
   constructor(
     photoURL: string,
@@ -18,7 +21,9 @@ export class UserProfile {
     about: string,
     age: number,
     gender: string,
-    interest: string
+    interest: string,
+    likes: number[] = [],
+    matches: number[] = []
   ) {
     this.photoURL = photoURL;
     this.username = username;
@@ -28,20 +33,56 @@ export class UserProfile {
     this.age = age;
     this.gender = gender;
     this.interest = interest;
+    this.likes = likes;
+    this.matches = matches;
   }
-
-  
 
   public async saveProfile(): Promise<void> {
     const userProfileData = { ...this };
     await UserProfileModel.saveProfile(userProfileData);
   }
 
-  public static async updatePhoto(chatid: number ,photoURL: string): Promise<void> {
-    await UserProfileModel.updatePhoto(chatid, photoURL)
+  public  async saveLikes(chatid: number): Promise<void> {
+      await UserProfileModel.saveNewLikes( chatid );
   }
-  
-  public static async findByChatId(chatid: number): Promise<UserProfile | null> {
+
+  public static async getAllProfiles(): Promise<UserProfile[] | null> {
+    try {
+      const profileDocuments = await UserProfileModel.getAllProfiles();
+      if (profileDocuments) {
+        return profileDocuments.map((profileDoc) => {
+          return new UserProfile(
+            profileDoc.photoURL,
+            profileDoc.username,
+            profileDoc.chatid,
+            profileDoc.name,
+            profileDoc.about,
+            profileDoc.age,
+            profileDoc.gender,
+            profileDoc.interest,
+            profileDoc.likes,
+            profileDoc.matches
+          );
+        });
+      } else {
+        return null;
+      }
+    } catch (error) {
+      console.error("Error retrieving profiles:", error);
+      return null;
+    }
+  }
+
+  public static async updatePhoto(
+    chatid: number,
+    photoURL: string
+  ): Promise<void> {
+    await UserProfileModel.updateNewPhoto(chatid, photoURL);
+  }
+
+  public static async findByChatId(
+    chatid: number
+  ): Promise<UserProfile | null> {
     const userProfileData = await UserProfileModel.findByChatId(chatid);
     if (userProfileData) {
       return new UserProfile(
@@ -52,13 +93,11 @@ export class UserProfile {
         userProfileData.about,
         userProfileData.age,
         userProfileData.gender,
-        userProfileData.interest
+        userProfileData.interest,
+        userProfileData.likes,
+        userProfileData.matches
       );
     }
     return null;
   }
-
-
 }
-
-
