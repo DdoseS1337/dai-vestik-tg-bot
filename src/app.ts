@@ -47,12 +47,14 @@ class Bot {
       if (msg.from?.username) {
         const username = msg.from?.username;
         const currentState = this.getUserState(chatId);
-
+        console.log(' BotState ')
         switch (currentState) {
           case BotState.Start:
+            console.log(' BotState.Start ' + BotState.Start)
             this.handleStartCommand(text, chatId);
             break;
           case BotState.FillProfile:
+            console.log(' BotState.FillProfile ' + BotState.FillProfile)
             if (msg.photo) {
               const photo = msg.photo[0];
               const fileId = photo.file_id;
@@ -62,6 +64,7 @@ class Bot {
             }
             break;
           case BotState.ChangeProfile:
+            console.log(' BotState.ChangeProfile ' + BotState.ChangeProfile)
             if (msg.photo) {
               const photo = msg.photo[0];
               const fileId = photo.file_id;
@@ -69,6 +72,7 @@ class Bot {
             }
             break;
           case BotState.ViewProfiles:
+            console.log(' BotState.ViewProfiles ' + BotState.ViewProfiles)
             this.handleViewProfilesCommand(chatId, text);
             break;
           default:
@@ -97,32 +101,38 @@ class Bot {
 
   private handleViewProfilesCommand(
     chatId: number,
-    text: string | undefined
+    text?: string | undefined
   ): void {
-    const viewProfilesCommand = this.createCommandInstance(
-      chatId,
-      ViewProfilesCommand
-    );
-    viewProfilesCommand.handle(chatId, text);
-
     if (text === "Стоп") {
       this.setUserState(chatId, BotState.Start);
+      this.setCommandInstance(chatId, null);
+      const startCommand = new StartCommand(this.bot);
+      startCommand.handle(chatId);
+    } else {
+      const viewProfilesCommand = this.createCommandInstance(
+        chatId,
+        ViewProfilesCommand
+      );
+      viewProfilesCommand.handle(chatId, text);
     }
+
+
+
   }
 
   private handleChangeProfileCommand(
     chatId: number,
     text: string | undefined
   ): void {
-    const changeProfileCommand = this.createCommandInstance(
-      chatId,
-      ChangeProfileCommand
-    );
-    changeProfileCommand.handle(chatId, text);
-
-    if (text === "Стоп") {
+      const changeProfileCommand = this.createCommandInstance(
+        chatId,
+        ChangeProfileCommand
+      );
+      changeProfileCommand.handle(chatId, text);
       this.setUserState(chatId, BotState.Start);
-    }
+      this.setCommandInstance(chatId, null);
+      const startCommand = new StartCommand(this.bot);
+      startCommand.handle(chatId);
   }
 
   private getUserState(chatId: number): BotState {
@@ -152,8 +162,16 @@ class Bot {
       // Handle command 3
     } else if (text === "4") {
       this.setUserState(chatId, BotState.ViewProfiles);
-      // this.handleViewProfilesCommand("", chatId);
-    } else {
+      this.handleViewProfilesCommand(chatId);
+      const response = `Ви вибрали перегляд анкет. Відправляю анкети...`;
+      this.bot.sendMessage(chatId, response);
+    } else if (text === "let`s go") {
+      this.setUserState(chatId, BotState.FillProfile);
+      const fillProfileInstance = new FillProfile(this.bot);
+      this.setCommandInstance(chatId, fillProfileInstance);
+      this.bot.sendMessage(chatId, "Як до тебе звертатись?");
+    } 
+    else {
       this.bot.sendMessage(chatId, "Unknown command");
     }
   }

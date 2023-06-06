@@ -13,6 +13,19 @@ export class UserProfileModel {
     return UserProfileSchema.findOne({ chatid }).exec();
   }
 
+  public static async updateProfile(userProfileData: UserProfileDocument): Promise<void> {
+    try {
+      const filter = { chatid: userProfileData.chatid }; // Фільтр для знаходження запису за chatid
+      const update = { $set: userProfileData }; // Об'єкт з оновленими даними профілю
+  
+      await UserProfileSchema.updateOne(filter, update);
+      console.log("Профіль оновлено успішно");
+    } catch (error) {
+      console.error("Помилка під час оновлення профілю:", error);
+      // Обробка помилки
+    }
+  }
+
   public static async getAllProfiles(): Promise<UserProfileDocument[] | null> {
     try {
       const profiles = await UserProfileSchema.find().exec();
@@ -23,19 +36,34 @@ export class UserProfileModel {
     }
   }
 
-  public static async saveNewLikes(chatid: number): Promise<void> {
+  public static async addLikedProfile(chatId: number, profileId: number): Promise<void> {
     try {
-      const userProfile = await UserProfileSchema.findOne({ chatid: chatid });
+      const userProfile = await UserProfileSchema.findOne({ chatid: chatId });
       if (userProfile) {
-        // Збережіть оновлений профіль в базі даних
+        userProfile.likes.push(profileId);
         await userProfile.save();
   
-        console.log('Лайки оновлені');
+        console.log('Профіль доданий до списку сподобаних');
       } else {
-        console.log('Не оновлені');
+        console.log('Профіль користувача не знайдений');
       }
     } catch (error) {
-      console.error("Error saving profile:", error);
+      console.error('Помилка збереження профілю:', error);
+    }
+  }
+
+  public static async addMachedProfile(chatId: number, profileId: number): Promise<void> {
+    try {
+      const userProfile = await UserProfileSchema.findOne({ chatid: chatId });
+      if (userProfile) {
+        userProfile.matches.push(profileId);
+        await userProfile.save();
+        console.log('Профіль доданий до списку сподобаних');
+      } else {
+        console.log('Профіль користувача не знайдений');
+      }
+    } catch (error) {
+      console.error('Помилка збереження профілю:', error);
     }
   }
   

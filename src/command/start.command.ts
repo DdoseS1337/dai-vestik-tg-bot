@@ -4,7 +4,7 @@ import { Command } from "./command.class";
 export class StartCommand extends Command {
 	async handle(chatid: number): Promise<void> {
 		const existingProfile = await UserProfile.findByChatId(chatid);
-
+		if(existingProfile) {
 			console.log(existingProfile)
 			const options = {
 				reply_markup: {
@@ -18,6 +18,21 @@ export class StartCommand extends Command {
 	
 			this.bot.sendMessage(chatid, response, options);
 		
+		} else {
+
+			const options = {
+				reply_markup: {
+					keyboard: [[{ text: 'let`s go' }]],
+				},
+			};
+			const response = `Привіт.\n` +
+			`Тебе вітає бот дайвестік.\n` +
+			`Що ж давай заповнимо твою накету\n` +
+			`4. Дивитися анкети.`;
+
+			this.bot.sendMessage(chatid, response, options);
+		}
+
 	}
 
 }

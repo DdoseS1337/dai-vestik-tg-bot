@@ -46,6 +46,12 @@ export class FillProfile extends Command {
     photoURL?: string
   ): Promise<void> {
     const currentStep = this.steps[this.currentStepIndex];
+    const existingProfile = await UserProfile.findByChatId(chatid);
+
+
+    // Очистити поточний стан
+
+    
 
     if (currentStep) {
       if (message) {
@@ -74,6 +80,21 @@ export class FillProfile extends Command {
         const response = nextStep.message;
         this.bot.sendMessage(chatid, response, options);
       } else {
+        if (existingProfile) {
+
+          // Оновити дані профілю з новими введеними користувачем даними
+          existingProfile.name = this.userProfileData.name as string;
+          existingProfile.about = this.userProfileData.about as string;
+          existingProfile.age = this.userProfileData.age as number;
+          existingProfile.gender = this.userProfileData.gender as string;
+          existingProfile.interest = this.userProfileData.interest as string;
+          existingProfile.photoURL = this.userProfileData.photoURL as string;
+    
+          // Зберегти оновлений профіль в базі даних
+          await existingProfile.updateProfile();
+    
+          this.bot.sendMessage(chatid, "Дані профілю оновлено.");
+      } else {
         if (username && photoURL) {
           const userProfile = new UserProfile(
             this.userProfileData.photo as string,
@@ -87,11 +108,11 @@ export class FillProfile extends Command {
             [],
             []
           );
-
           userProfile.saveProfile();
           console.log(userProfile);
           this.bot.sendMessage(chatid, "Форма заповнена");
         }
+      }
       }
     }
   }

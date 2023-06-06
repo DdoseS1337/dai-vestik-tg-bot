@@ -41,9 +41,16 @@ export class UserProfile implements IUserProfile {
     const userProfileData = { ...this };
     await UserProfileModel.saveProfile(userProfileData);
   }
+  public async updateProfile(): Promise<void> {
+    const userProfileData = { ...this };
+    await UserProfileModel.updateProfile(userProfileData);
+  }
+  public  async saveLikes(chatid: number, profileId: number): Promise<void> {
+    await UserProfileModel.addLikedProfile(chatid, profileId);
+  }
 
-  public  async saveLikes(chatid: number): Promise<void> {
-      await UserProfileModel.saveNewLikes( chatid );
+  public  async saveMatches(chatid: number, profileId: number): Promise<void> {
+    await UserProfileModel.addMachedProfile(chatid, profileId);
   }
 
   public static async getAllProfiles(): Promise<UserProfile[] | null> {
