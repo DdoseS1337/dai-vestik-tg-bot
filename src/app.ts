@@ -3,15 +3,18 @@ import { IConfigService } from "./config/config.interface";
 import { ConfigService } from "./config/config.service";
 import { StartCommand } from "./command/start.command";
 import { FillProfile } from "./command/fill-profile.command";
-import { ChangeProfileCommand } from "./command/change-profile.command";
+import { ChangeProfilePhotoCommand } from "./command/change-profile.command";
 import { ViewProfilesCommand } from "./command/view-profiles.command";
 import mongoose from "mongoose";
 import { Command } from "./command/command.class";
+import { ChangeProfileTextCommand } from "./command/change-profile-text.command";
+import { MatchTracker } from "./command/match-tracker.command";
 
 enum BotState {
   Start,
   FillProfile,
-  ChangeProfile,
+  ChangeProfilePhoto,
+  ChangeProfileText,
   ViewProfiles,
 }
 
@@ -20,26 +23,30 @@ class Bot {
   private bot: TelegramBot;
   private userStates: Map<number, BotState> = new Map();
   private userCommandInstances: Map<number, Command> = new Map();
+  matchTracker: MatchTracker;
 
   constructor(configService: IConfigService) {
     this.configService = configService;
     this.bot = new TelegramBot(this.configService.get("TOKEN"), {
       polling: true,
     });
+    this.matchTracker = new MatchTracker();
   }
 
   public init(): void {
     console.log("Bot start");
+    
     const connectDB = async (): Promise<void> => {
       try {
         await mongoose.connect(this.configService.get("MONGO_DB"));
         console.log("Connected to MongoDB");
+        this.matchTracker.watchChanges();
       } catch (error) {
         console.error("Error connecting to MongoDB:", error);
       }
     };
     connectDB();
-
+    
     this.bot.on("message", async (msg: Message) => {
       const text = msg.text;
       const chatId = msg.chat.id;
@@ -47,14 +54,14 @@ class Bot {
       if (msg.from?.username) {
         const username = msg.from?.username;
         const currentState = this.getUserState(chatId);
-        console.log(' BotState ')
+        console.log(" BotState ");
         switch (currentState) {
           case BotState.Start:
-            console.log(' BotState.Start ' + BotState.Start)
+            console.log(" BotState.Start " + BotState.Start);
             this.handleStartCommand(text, chatId);
             break;
           case BotState.FillProfile:
-            console.log(' BotState.FillProfile ' + BotState.FillProfile)
+            console.log(" BotState.FillProfile " + BotState.FillProfile);
             if (msg.photo) {
               const photo = msg.photo[0];
               const fileId = photo.file_id;
@@ -63,16 +70,21 @@ class Bot {
               this.handleFillProfileCommand(text, chatId, username);
             }
             break;
-          case BotState.ChangeProfile:
-            console.log(' BotState.ChangeProfile ' + BotState.ChangeProfile)
+          case BotState.ChangeProfilePhoto:
+            console.log(
+              " BotState.ChangeProfile " + BotState.ChangeProfilePhoto
+            );
             if (msg.photo) {
               const photo = msg.photo[0];
               const fileId = photo.file_id;
-              this.handleChangeProfileCommand(chatId, fileId);
+              this.handleChangeProfilePhotoCommand(chatId, fileId);
             }
             break;
+          case BotState.ChangeProfileText:
+            this.handleChangeProfileTextCommand(chatId, text);
+            break;
           case BotState.ViewProfiles:
-            console.log(' BotState.ViewProfiles ' + BotState.ViewProfiles)
+            console.log(" BotState.ViewProfiles " + BotState.ViewProfiles);
             this.handleViewProfilesCommand(chatId, text);
             break;
           default:
@@ -103,7 +115,7 @@ class Bot {
     chatId: number,
     text?: string | undefined
   ): void {
-    if (text === "Стоп") {
+    if (text === "💤") {
       this.setUserState(chatId, BotState.Start);
       this.setCommandInstance(chatId, null);
       const startCommand = new StartCommand(this.bot);
@@ -115,24 +127,53 @@ class Bot {
       );
       viewProfilesCommand.handle(chatId, text);
     }
-
-
-
   }
 
-  private handleChangeProfileCommand(
+  private handleChangeProfilePhotoCommand(
     chatId: number,
     text: string | undefined
   ): void {
-      const changeProfileCommand = this.createCommandInstance(
-        chatId,
-        ChangeProfileCommand
-      );
-      changeProfileCommand.handle(chatId, text);
-      this.setUserState(chatId, BotState.Start);
-      this.setCommandInstance(chatId, null);
-      const startCommand = new StartCommand(this.bot);
-      startCommand.handle(chatId);
+    const changeProfilePhotoCommand = this.createCommandInstance(
+      chatId,
+      ChangeProfilePhotoCommand
+    );
+    changeProfilePhotoCommand
+      .handle(chatId, text)
+      .then(() => {
+        this.setUserState(chatId, BotState.Start);
+        const startCommand = new StartCommand(this.bot);
+        startCommand.handle(chatId);
+      })
+      .catch((e) => {
+        console.error("Помилка", e);
+      });
+    this.setUserState(chatId, BotState.Start);
+    this.setCommandInstance(chatId, null);
+  }
+
+  private handleChangeProfileTextCommand(
+    chatId: number,
+    text: string | undefined,
+  ): void {
+    const changeProfileTextCommand = this.createCommandInstance(
+      chatId,
+      ChangeProfileTextCommand
+    );
+    if(text) {
+      changeProfileTextCommand
+      .handle(chatId, text)
+      .then(() => {
+        this.setUserState(chatId, BotState.Start);
+        const startCommand = new StartCommand(this.bot);
+        startCommand.handle(chatId);
+      })
+      .catch((e) => {
+        console.error("Помилка", e);
+      });
+    this.setUserState(chatId, BotState.Start);
+    this.setCommandInstance(chatId, null);
+    }
+
   }
 
   private getUserState(chatId: number): BotState {
@@ -143,10 +184,7 @@ class Bot {
     this.userStates.set(chatId, state);
   }
 
-  private handleStartCommand(
-    text: string | undefined,
-    chatId: number
-  ): void {
+  private handleStartCommand(text: string | undefined, chatId: number): void {
     if (text === "/start") {
       const startCommand = new StartCommand(this.bot);
       startCommand.handle(chatId);
@@ -156,11 +194,12 @@ class Bot {
       this.setCommandInstance(chatId, fillProfileInstance);
       this.bot.sendMessage(chatId, "Як до тебе звертатись?");
     } else if (text === "2") {
-      this.setUserState(chatId, BotState.ChangeProfile);
+      this.setUserState(chatId, BotState.ChangeProfilePhoto);
       this.bot.sendMessage(chatId, "Надішли нове фото");
     } else if (text === "3") {
-      // Handle command 3
-    } else if (text === "4") {
+      this.setUserState(chatId, BotState.ChangeProfileText);
+      this.bot.sendMessage(chatId, "Надішли новий текст");
+    } else if (text === "4 🚀") {
       this.setUserState(chatId, BotState.ViewProfiles);
       this.handleViewProfilesCommand(chatId);
       const response = `Ви вибрали перегляд анкет. Відправляю анкети...`;
@@ -170,8 +209,7 @@ class Bot {
       const fillProfileInstance = new FillProfile(this.bot);
       this.setCommandInstance(chatId, fillProfileInstance);
       this.bot.sendMessage(chatId, "Як до тебе звертатись?");
-    } 
-    else {
+    } else {
       this.bot.sendMessage(chatId, "Unknown command");
     }
   }
@@ -203,17 +241,19 @@ class Bot {
         }
 
         this.setUserState(chatId, BotState.Start);
+        const startCommand = new StartCommand(this.bot);
+        startCommand.handle(chatId);
         this.setCommandInstance(chatId, null);
       }
     } else {
       this.bot.sendMessage(chatId, "Invalid command");
       this.setUserState(chatId, BotState.Start);
+      const startCommand = new StartCommand(this.bot);
+      startCommand.handle(chatId);
     }
   }
 
-  private getCommandInstance<T extends Command>(
-    chatId: number
-  ): T | null {
+  private getCommandInstance<T extends Command>(chatId: number): T | null {
     return this.userCommandInstances.get(chatId) as T | null;
   }
 

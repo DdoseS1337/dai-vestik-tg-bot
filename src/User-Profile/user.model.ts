@@ -1,4 +1,5 @@
 
+import { Types } from 'mongoose';
 import  UserProfileSchema, { UserProfileDocument }  from './user.model.interface'
 
 export class UserProfileModel {
@@ -7,12 +8,22 @@ export class UserProfileModel {
     await userProfile.save();
     console.log('Профіль збережений')
   }
-  
+
+  public static async findMatchedProfiles(userProfileId: Types.ObjectId): Promise<UserProfileDocument[] | null> {
+    return await UserProfileSchema.find({
+      $or: [
+        { _id: userProfileId },
+        { matches: userProfileId },
+      ],
+    });
+  }
 
   public static async findByChatId(chatid: number): Promise<UserProfileDocument | null> {
     return UserProfileSchema.findOne({ chatid }).exec();
   }
-
+  public static async findById(userProfileId: object): Promise<UserProfileDocument | null> {
+    return UserProfileSchema.findById({ userProfileId }).exec();
+  }
   public static async updateProfile(userProfileData: UserProfileDocument): Promise<void> {
     try {
       const filter = { chatid: userProfileData.chatid }; // Фільтр для знаходження запису за chatid
@@ -56,8 +67,7 @@ export class UserProfileModel {
     try {
       const userProfile = await UserProfileSchema.findOne({ chatid: chatId });
       if (userProfile) {
-        userProfile.matches.push(profileId);
-        await userProfile.save();
+        await UserProfileSchema.updateOne({ chatid: chatId }, { $push: { matches: profileId } });
         console.log('Профіль доданий до списку сподобаних');
       } else {
         console.log('Профіль користувача не знайдений');
@@ -67,6 +77,7 @@ export class UserProfileModel {
     }
   }
   
+  
   public static async updateNewPhoto(chatid: number, photoURL: string): Promise<void> {
     // Знайдіть профіль за chatid
     const userProfile = await UserProfileSchema.findOne({ chatid });
@@ -74,6 +85,24 @@ export class UserProfileModel {
     if (userProfile) {
       // Оновіть фото в профілі
       userProfile.photoURL = photoURL;
+      
+      // Збережіть оновлений профіль в базі даних
+      await userProfile.save();
+
+      console.log('Фото оновлено');
+    } else {
+      console.log('Профіль не знайдено');
+    }
+
+  }
+
+  public static async updateNewText(chatid: number, text: string): Promise<void> {
+    // Знайдіть профіль за chatid
+    const userProfile = await UserProfileSchema.findOne({ chatid });
+
+    if (userProfile) {
+      // Оновіть фото в профілі
+      userProfile.about = text;
       
       // Збережіть оновлений профіль в базі даних
       await userProfile.save();

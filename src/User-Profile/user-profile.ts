@@ -45,6 +45,13 @@ export class UserProfile implements IUserProfile {
     const userProfileData = { ...this };
     await UserProfileModel.updateProfile(userProfileData);
   }
+
+  public static async updateText(
+    chatid: number,
+    text: string
+  ): Promise<void> {
+    await UserProfileModel.updateNewText(chatid, text);
+  }
   public  async saveLikes(chatid: number, profileId: number): Promise<void> {
     await UserProfileModel.addLikedProfile(chatid, profileId);
   }

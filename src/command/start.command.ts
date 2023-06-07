@@ -8,7 +8,10 @@ export class StartCommand extends Command {
 			console.log(existingProfile)
 			const options = {
 				reply_markup: {
-					keyboard: [[{ text: '1' }, { text: '2' }, { text: '3' }, { text: '4' }]],
+					keyboard: [
+						[{ text: '1' }, { text: '2' }, { text: '3' }, { text: '4 🚀' }]
+					],
+					resize_keyboard: true,
 				},
 			};
 			const response = `1. Заповнити анкету наново.\n` +
@@ -23,6 +26,7 @@ export class StartCommand extends Command {
 			const options = {
 				reply_markup: {
 					keyboard: [[{ text: 'let`s go' }]],
+					resize_keyboard: true,
 				},
 			};
 			const response = `Привіт.\n` +

@@ -1,8 +1,9 @@
 import { UserProfile } from "../User-Profile/user-profile";
 import { Command } from "./command.class";
 
-export class ChangeProfileCommand extends Command {
-  async handle(chatid: number, photoURL?: string): Promise<void> {
+export class ChangeProfilePhotoCommand extends Command {
+  
+  async handle(chatid: number, photoURL?: string): Promise<boolean| void> {
 	
     if (photoURL) {
       await UserProfile.updatePhoto(chatid, photoURL);

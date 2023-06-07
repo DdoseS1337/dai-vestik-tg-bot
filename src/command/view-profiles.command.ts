@@ -17,7 +17,7 @@ export class ViewProfilesCommand extends Command {
     if (this.cachedProfiles && this.cachedProfiles.length > 0) {
       const profile = this.cachedProfiles[this.currentIndex];
       if (profile) {
-        if (this.previousProfile && message === "Подобається") {
+        if (this.previousProfile && message === "❤️") {
           this.handleLike(currentUserChatid, this.previousProfile);
           this.answeredProfiles.push(this.previousProfile);
         }
@@ -64,16 +64,17 @@ export class ViewProfilesCommand extends Command {
         keyboard: [
           [
             {
-              text: "Подобається",
+              text: "❤️",
             },
             {
-              text: "Не подобається",
+              text: "👎",
             },
             {
-              text: "Стоп",
+              text: "💤",
             },
           ],
         ],
+        resize_keyboard: true,
       },
     };
     this.bot.sendPhoto(currentUserChatid, profile.photoURL, options);
@@ -92,16 +93,13 @@ export class ViewProfilesCommand extends Command {
         await currentUserProfile.saveLikes(currentUserChatid, profile.chatid);
       }
       if (profile.likes.includes(currentUserChatid)) {
-        currentUserProfile.matches.push(profile.chatid);
-        await currentUserProfile.saveMatches(currentUserChatid, profile.chatid);
-        await profile.saveMatches(profile.chatid, currentUserChatid);
+        if(!profile.matches.includes(currentUserChatid)) {
+          currentUserProfile.matches.push(profile.chatid);
+          profile.matches.push(currentUserChatid);
+          await currentUserProfile.saveMatches(currentUserChatid, profile.chatid);
+          await profile.saveMatches(profile.chatid, currentUserChatid);
+        }
       }
-      if (!profile.matches.includes(currentUserChatid)) {
-        profile.matches.push(currentUserChatid);
-        await profile.saveMatches(profile.chatid, currentUserChatid);
-      }
-      console.log(currentUserProfile.likes);
-      console.log(currentUserProfile.matches);
     }
   }
 
