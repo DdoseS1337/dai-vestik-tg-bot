@@ -1,6 +1,4 @@
 import TelegramBot, { Message } from "node-telegram-bot-api";
-import { IConfigService } from "./config/config.interface";
-import { ConfigService } from "./config/config.service";
 import { StartCommand } from "./command/start.command";
 import { FillProfile } from "./command/fill-profile.command";
 import { ChangeProfilePhotoCommand } from "./command/change-profile.command";
@@ -9,6 +7,7 @@ import mongoose from "mongoose";
 import { Command } from "./command/command.class";
 import { ChangeProfileTextCommand } from "./command/change-profile-text.command";
 import { MatchTracker } from "./command/match-tracker.command";
+import * as dotenv from 'dotenv';
 
 enum BotState {
   Start,
@@ -19,26 +18,33 @@ enum BotState {
 }
 
 class Bot {
-  private readonly configService: IConfigService;
   private bot: TelegramBot;
   private userStates: Map<number, BotState> = new Map();
   private userCommandInstances: Map<number, Command> = new Map();
   matchTracker: MatchTracker;
+  
+  constructor() {
+    
+    dotenv.config();
 
-  constructor(configService: IConfigService) {
-    this.configService = configService;
-    this.bot = new TelegramBot(this.configService.get("TOKEN"), {
-      polling: true,
-    });
+    const token = process.env.TOKEN as string;
+    
+    
+      this.bot = new TelegramBot(token, {
+        polling: true,
+      });
+    
     this.matchTracker = new MatchTracker(this.bot);
   }
-
+  
   public init(): void {
     console.log("Bot start");
+
+    const mongo = process.env.MONGO_DB as string;
     
     const connectDB = async (): Promise<void> => {
       try {
-        await mongoose.connect(this.configService.get("MONGO_DB"));
+        await mongoose.connect(mongo);
         console.log("Connected to MongoDB");
         this.matchTracker.watchChanges();
       } catch (error) {
@@ -269,5 +275,5 @@ class Bot {
   }
 }
 
-const bot = new Bot(new ConfigService());
+const bot = new Bot();
 bot.init();
