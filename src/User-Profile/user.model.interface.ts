@@ -1,6 +1,6 @@
 import { Schema, model } from 'mongoose';
 
-export interface UserProfileDocument  {
+export interface IUserProfileDocument  {
   photoURL: string,
   username: string,
   chatid: number;
@@ -13,7 +13,9 @@ export interface UserProfileDocument  {
   matches: number[];
 }
 
-const userProfileSchema = new Schema<UserProfileDocument>({
+
+
+const userProfileSchema = new Schema({
   chatid: { type: Number, required: true, unique: true },
   username: { type: String, required: true},
   photoURL: { type: String, required: true},
@@ -26,4 +28,4 @@ const userProfileSchema = new Schema<UserProfileDocument>({
   matches: { type: [Number], default: [] },
 });
 
-export default model<UserProfileDocument>('UserProfile', userProfileSchema);
+export default model<IUserProfileDocument>('UserProfile', userProfileSchema);

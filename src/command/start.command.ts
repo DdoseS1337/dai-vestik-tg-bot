@@ -31,8 +31,7 @@ export class StartCommand extends Command {
 			};
 			const response = `Привіт.\n` +
 			`Тебе вітає бот дайвестік.\n` +
-			`Що ж давай заповнимо твою накету\n` +
-			`4. Дивитися анкети.`;
+			`Що ж давай заповнимо твою накету\n`; 
 
 			this.bot.sendMessage(chatid, response, options);
 		}

@@ -1,30 +1,23 @@
 
 import { Types } from 'mongoose';
-import  UserProfileSchema, { UserProfileDocument }  from './user.model.interface'
+import  UserProfileSchema, { IUserProfileDocument }  from './user.model.interface'
 
 export class UserProfileModel {
-  public static async saveProfile(userProfileData: UserProfileDocument): Promise<void> {
+  public static async saveProfile(userProfileData: IUserProfileDocument): Promise<void> {
     const userProfile = new UserProfileSchema(userProfileData);
     await userProfile.save();
     console.log('Профіль збережений')
   }
 
-  public static async findMatchedProfiles(userProfileId: Types.ObjectId): Promise<UserProfileDocument[] | null> {
-    return await UserProfileSchema.find({
-      $or: [
-        { _id: userProfileId },
-        { matches: userProfileId },
-      ],
-    });
-  }
 
-  public static async findByChatId(chatid: number): Promise<UserProfileDocument | null> {
+
+  public static async findByChatUserId(chatid: number): Promise<IUserProfileDocument | null> {
     return UserProfileSchema.findOne({ chatid }).exec();
   }
-  public static async findById(userProfileId: object): Promise<UserProfileDocument | null> {
+  public static async findById(userProfileId: Types.ObjectId): Promise<IUserProfileDocument | null> {
     return UserProfileSchema.findById({ userProfileId }).exec();
   }
-  public static async updateProfile(userProfileData: UserProfileDocument): Promise<void> {
+  public static async updateProfile(userProfileData: IUserProfileDocument): Promise<void> {
     try {
       const filter = { chatid: userProfileData.chatid }; // Фільтр для знаходження запису за chatid
       const update = { $set: userProfileData }; // Об'єкт з оновленими даними профілю
@@ -37,7 +30,7 @@ export class UserProfileModel {
     }
   }
 
-  public static async getAllProfiles(): Promise<UserProfileDocument[] | null> {
+  public static async getAllProfiles(): Promise<IUserProfileDocument[] | null> {
     try {
       const profiles = await UserProfileSchema.find().exec();
       return profiles;

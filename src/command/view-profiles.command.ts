@@ -22,8 +22,15 @@ export class ViewProfilesCommand extends Command {
           this.answeredProfiles.push(this.previousProfile);
         }
 
-        this.displayProfile(currentUserChatid, profile);
-        this.previousProfile = profile;
+        if (await this.isProfileMatch(currentUserChatid, profile)) {
+          this.displayProfile(currentUserChatid, profile);
+          this.previousProfile = profile;
+          
+        } else {
+          this.currentIndex++;
+          this.handle(currentUserChatid); // Рекурсивно переходимо до наступного профілю
+          return;
+        }
 
         this.currentIndex++;
 
@@ -79,7 +86,21 @@ export class ViewProfilesCommand extends Command {
     };
     this.bot.sendPhoto(currentUserChatid, profile.photoURL, options);
   }
-
+  private async isProfileMatch(currentUserChatid: number, profile: UserProfile): Promise<boolean> {
+    const currentUserProfile = await UserProfile.findByChatId(currentUserChatid);
+    if (currentUserProfile) {
+      // Перевіряємо, чи гендер користувача відповідає вимогам профілю
+      if (
+        currentUserProfile.gender === profile.interest ||
+        profile.interest === "any"
+      ) {
+        return true;
+      } else {
+        return false;
+      }
+    }
+    return false;
+  }
   private async handleLike(
     currentUserChatid: number,
     profile: UserProfile

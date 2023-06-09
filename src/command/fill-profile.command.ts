@@ -46,13 +46,7 @@ export class FillProfile extends Command {
     photoURL?: string
   ): Promise<void> {
     const currentStep = this.steps[this.currentStepIndex];
-    const existingProfile = await UserProfile.findByChatId(chatid);
-
-
-    // Очистити поточний стан
-
-    
-
+    const existingProfile = await UserProfile.findByChatId(chatid); 
     if (currentStep) {
       if (message) {
         if (currentStep.property === "age") {
@@ -65,7 +59,23 @@ export class FillProfile extends Command {
             return;
           }
           this.userProfileData[currentStep.property] = age;
-        } else {
+        }
+        else if (currentStep.property === "gender") {
+          if (message === "Я Хлопець") {
+            this.userProfileData[currentStep.property] = "male";
+          } else if (message === "Я Дівчина") {
+            this.userProfileData[currentStep.property] = "female";
+          }
+        } else if (currentStep.property === "interest") {
+          if (message === "Дівчата") {
+            this.userProfileData[currentStep.property] = "female";
+          } else if (message === "Хлопці") {
+            this.userProfileData[currentStep.property] = "male";
+          } else if (message === "Все одно") {
+            this.userProfileData[currentStep.property] = "any";
+          } 
+        }
+         else {
           this.userProfileData[currentStep.property] = message;
         }
       } else if (photoURL) {
@@ -146,7 +156,9 @@ export class FillProfile extends Command {
   }
 
   isProfileFilled(): boolean {
-    return this.currentStepIndex >= this.steps.length;
+    console.log(this.currentStepIndex >= this.steps.length)
+    console.log(this.currentStepIndex, this.steps.length)
+    return this.currentStepIndex  >= this.steps.length - 1;
   }
 
   getProfileResponse(): string {

@@ -94,10 +94,11 @@ export class UserProfile implements IUserProfile {
     await UserProfileModel.updateNewPhoto(chatid, photoURL);
   }
 
+  
   public static async findByChatId(
     chatid: number
   ): Promise<UserProfile | null> {
-    const userProfileData = await UserProfileModel.findByChatId(chatid);
+    const userProfileData = await UserProfileModel.findByChatUserId(chatid);
     if (userProfileData) {
       return new UserProfile(
         userProfileData.photoURL,

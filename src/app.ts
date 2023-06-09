@@ -30,7 +30,7 @@ class Bot {
     this.bot = new TelegramBot(this.configService.get("TOKEN"), {
       polling: true,
     });
-    this.matchTracker = new MatchTracker();
+    this.matchTracker = new MatchTracker(this.bot);
   }
 
   public init(): void {
