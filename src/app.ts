@@ -43,12 +43,20 @@ class Bot {
     const mongo = process.env.MONGO_DB as string;
     
     const connectDB = async (): Promise<void> => {
-      try {
-        await mongoose.connect(mongo);
-        console.log("Connected to MongoDB");
-        this.matchTracker.watchChanges();
-      } catch (error) {
-        console.error("Error connecting to MongoDB:", error);
+      let isConnected = false;
+      
+      while (!isConnected) {
+        try {
+          await mongoose.connect(mongo);
+          console.log("Connected to MongoDB");
+          isConnected = true;
+          this.matchTracker.watchChanges();
+        } catch (error) {
+          const errorMessage = (error as Error).message.slice(0, 100); // Обмеження до 50 символів
+          console.error("Error connecting to MongoDB:", errorMessage);
+          // Очікувати певний час перед наступною спробою підключення
+          await new Promise((resolve) => setTimeout(resolve, 5000));
+        }
       }
     };
     connectDB();
