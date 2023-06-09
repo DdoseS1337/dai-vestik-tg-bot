@@ -67,7 +67,7 @@ export class MatchTracker {
   }
 
   async handleMatch(userProfile: UserProfile) {
-    console.log("Sending match notification to user:");
+    console.log("Sending match notification to users:");
 
     const userId = userProfile.chatid;
     const matches = this.matchedProfiles.get(userId) || [];
