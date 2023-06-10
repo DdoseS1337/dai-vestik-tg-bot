@@ -1,4 +1,5 @@
-import TelegramBot, { Message } from "node-telegram-bot-api";
+import TelegramBot from "node-telegram-bot-api";
+import { Message } from "node-telegram-bot-api";
 import { StartCommand } from "./command/start.command";
 import { FillProfile } from "./command/fill-profile.command";
 import { ChangeProfilePhotoCommand } from "./command/change-profile.command";
@@ -8,7 +9,6 @@ import { Command } from "./command/command.class";
 import { ChangeProfileTextCommand } from "./command/change-profile-text.command";
 import { MatchTracker } from "./command/match-tracker.command";
 import * as dotenv from 'dotenv';
-import { webhookCallback } from "grammy";
 import express from "express";
 
 enum BotState {
@@ -24,17 +24,17 @@ class Bot {
   private userStates: Map<number, BotState> = new Map();
   private userCommandInstances: Map<number, Command> = new Map();
   matchTracker: MatchTracker;
+  app: any;
   
   constructor() {
-    
     dotenv.config();
 
     const token = process.env.TOKEN as string;
+    this.app = express();
     
-    
-      this.bot = new TelegramBot(token, {
-        polling: true,
-      });
+    this.bot = new TelegramBot(token, {
+      polling: false,
+    });
     
     this.matchTracker = new MatchTracker(this.bot);
   }
@@ -54,71 +54,86 @@ class Bot {
           isConnected = true;
           this.matchTracker.watchChanges();
         } catch (error) {
-          const errorMessage = (error as Error).message.slice(0, 100); // Обмеження до 50 символів
+          const errorMessage = (error as Error).message.slice(0, 100);
           console.error("Error connecting to MongoDB:", errorMessage);
-          // Очікувати певний час перед наступною спробою підключення
           await new Promise((resolve) => setTimeout(resolve, 5000));
         }
       }
     };
     connectDB();
-    const webhookUrl = 'https://kind-blue-bison-ring.cyclic.app';
-
+    
+    this.setupWebhook();
+    this.setupRoutes();
+  }
+  
+  private setupWebhook(): void {
+    const webhookUrl = "https://your-website.com/webhook";
+    
     this.bot.setWebHook(webhookUrl)
-    .then(() => {
-      console.log('Webhook has been set successfully');
-    })
-    .catch((error) => {
-      console.error('Error setting webhook:', error);
-    });
-    this.bot.on("message", async (msg: Message) => {
-      const text = msg.text;
-      const chatId = msg.chat.id;
+      .then(() => {
+        console.log('Webhook has been set successfully');
+      })
+      .catch((error) => {
+        console.error('Error setting webhook:', error);
+      });
       
-      if (msg.from?.username) {
-        const username = msg.from?.username;
-        const currentState = this.getUserState(chatId);
-        console.log(" BotState ");
-        switch (currentState) {
-          case BotState.Start:
-            console.log(" BotState.Start " + BotState.Start);
-            this.handleStartCommand(text, chatId);
-            break;
-          case BotState.FillProfile:
-            console.log(" BotState.FillProfile " + BotState.FillProfile);
-            if (msg.photo) {
-              const photo = msg.photo[0];
-              const fileId = photo.file_id;
-              this.handleFillProfileCommand(text, chatId, username, fileId);
-            } else {
-              this.handleFillProfileCommand(text, chatId, username);
-            }
-            break;
-          case BotState.ChangeProfilePhoto:
-            console.log(
-              " BotState.ChangeProfile " + BotState.ChangeProfilePhoto
-            );
-            if (msg.photo) {
-              const photo = msg.photo[0];
-              const fileId = photo.file_id;
-              this.handleChangeProfilePhotoCommand(chatId, fileId);
-            }
-            break;
-          case BotState.ChangeProfileText:
-            this.handleChangeProfileTextCommand(chatId, text);
-            break;
-          case BotState.ViewProfiles:
-            console.log(" BotState.ViewProfiles " + BotState.ViewProfiles);
-            this.handleViewProfilesCommand(chatId, text);
-            break;
-          default:
-            this.bot.sendMessage(chatId, "Unknown command");
-            break;
-        }
-      } else {
-        this.bot.sendMessage(chatId, "Set username please");
-      }
+    this.bot.on('message', this.handleMessage.bind(this));
+  }
+  
+  private setupRoutes(): void {
+    this.app.use(express.json());
+    this.app.post('/webhook', (req: any, res:any) => {
+      this.bot.processUpdate(req.body);
+      res.sendStatus(200);
     });
+
+    const port = process.env.PORT || 3000;
+    this.app.listen(port, () => {
+      console.log(`Server is running on port ${port}`);
+    });
+  }
+
+  private handleMessage(msg: Message): void {
+    const text = msg.text;
+    const chatId = msg.chat.id;
+
+    if (msg.from?.username) {
+      const username = msg.from?.username;
+      const currentState = this.getUserState(chatId);
+
+      switch (currentState) {
+        case BotState.Start:
+          this.handleStartCommand(text, chatId);
+          break;
+        case BotState.FillProfile:
+          if (msg.photo) {
+            const photo = msg.photo[0];
+            const fileId = photo.file_id;
+            this.handleFillProfileCommand(text, chatId, username, fileId);
+          } else {
+            this.handleFillProfileCommand(text, chatId, username);
+          }
+          break;
+        case BotState.ChangeProfilePhoto:
+          if (msg.photo) {
+            const photo = msg.photo[0];
+            const fileId = photo.file_id;
+            this.handleChangeProfilePhotoCommand(chatId, fileId);
+          }
+          break;
+        case BotState.ChangeProfileText:
+          this.handleChangeProfileTextCommand(chatId, text);
+          break;
+        case BotState.ViewProfiles:
+          this.handleViewProfilesCommand(chatId, text);
+          break;
+        default:
+          this.bot.sendMessage(chatId, "Unknown command");
+          break;
+      }
+    } else {
+      this.bot.sendMessage(chatId, "Set username please");
+    }
   }
 
   private createCommandInstance<T extends Command>(
@@ -169,7 +184,7 @@ class Bot {
         startCommand.handle(chatId);
       })
       .catch((e) => {
-        console.error("Помилка", e);
+        console.error("Error:", e);
       });
     this.setUserState(chatId, BotState.Start);
     this.setCommandInstance(chatId, null);
@@ -183,7 +198,7 @@ class Bot {
       chatId,
       ChangeProfileTextCommand
     );
-    if(text) {
+    if (text) {
       changeProfileTextCommand
       .handle(chatId, text)
       .then(() => {
@@ -192,12 +207,11 @@ class Bot {
         startCommand.handle(chatId);
       })
       .catch((e) => {
-        console.error("Помилка", e);
+        console.error("Error:", e);
       });
-    this.setUserState(chatId, BotState.Start);
-    this.setCommandInstance(chatId, null);
+      this.setUserState(chatId, BotState.Start);
+      this.setCommandInstance(chatId, null);
     }
-
   }
 
   private getUserState(chatId: number): BotState {
