@@ -8,6 +8,8 @@ import { Command } from "./command/command.class";
 import { ChangeProfileTextCommand } from "./command/change-profile-text.command";
 import { MatchTracker } from "./command/match-tracker.command";
 import * as dotenv from 'dotenv';
+import { webhookCallback } from "grammy";
+import express from "express";
 
 enum BotState {
   Start,
@@ -60,11 +62,19 @@ class Bot {
       }
     };
     connectDB();
-    
+    const webhookUrl = 'https://kind-blue-bison-ring.cyclic.app';
+
+    this.bot.setWebHook(webhookUrl)
+    .then(() => {
+      console.log('Webhook has been set successfully');
+    })
+    .catch((error) => {
+      console.error('Error setting webhook:', error);
+    });
     this.bot.on("message", async (msg: Message) => {
       const text = msg.text;
       const chatId = msg.chat.id;
-
+      
       if (msg.from?.username) {
         const username = msg.from?.username;
         const currentState = this.getUserState(chatId);
