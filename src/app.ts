@@ -67,7 +67,7 @@ class Bot {
   }
   
   private setupWebhook(): void {
-    const webhookUrl = "https://your-website.com/webhook";
+    const webhookUrl = "https://nice-cyan-lizard-cuff.cyclic.app";
     
     this.bot.setWebHook(webhookUrl)
       .then(() => {
